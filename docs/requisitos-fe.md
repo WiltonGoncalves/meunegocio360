@@ -2,63 +2,15 @@
 
 | | |
 | --- | --- |
-| **Versão** | 2.0 |
+| **Versão** | 2.1 |
 | **Atualizado em** | 11/11/2026 |
 | **Projeto** | `meunegocio360-js` |
 | **Herda de** | [`requisitos-gerais.md`](./requisitos-gerais.md) (todos os RNF se aplicam; aqui só há o que é específico do frontend) |
 | **Contrato de API** | [`requisitos-be.md`](./requisitos-be.md) (OpenAPI do backend é a fonte da verdade) |
 
-## 1. Stack e dependências
+## 1. Arquitetura
 
-| Item | Definição |
-| --- | --- |
-| Framework / build | React 19 + Vite, em **JavaScript** (decisão D-04: sem TypeScript; contratos documentados por OpenAPI, *schemas* Zod e JSDoc quando agregar clareza) |
-| Roteamento | React Router |
-| Estado de servidor | TanStack Query |
-| Formulários e validação | React Hook Form + Zod |
-| Estilos | CSS Modules + design tokens em variáveis CSS (decisão D-05) |
-| Fontes | `@fontsource/barlow` e `@fontsource/barlow-condensed` (auto-hospedadas) |
-| Testes | Vitest, React Testing Library, `user-event`, `jest-dom`, MSW, `vitest-axe` |
-| Qualidade | ESLint (configuração flat já existente) + Prettier |
-
-### 1.1 Dependências: base e introdução ao longo do curso
-
-O `package.json` gerado já contém a **base**: React, ReactDOM e a toolchain Vite/ESLint (scripts `dev`, `build`, `lint` e `preview`). Todo o resto é acrescentado **no requisito que o exige** (RNF-015). Nesta base, o único requisito é `RF-FE-001`, que introduz:
-
-| Dependência | Para quê | Introduzida em |
-| --- | --- | --- |
-| `react-router` | Roteamento e rotas protegidas | RF-FE-001 |
-| `@tanstack/react-query` | Estado de servidor (cache, carregamento, erro) | RF-FE-001 |
-| `react-hook-form`, `zod`, `@hookform/resolvers` | Formulários e validação | RF-FE-001 |
-| `@fontsource/barlow`, `@fontsource/barlow-condensed` | Fontes auto-hospedadas | RF-FE-001 |
-| `vitest`, `@testing-library/*`, `msw`, `vitest-axe` | Testes de componente, API simulada e acessibilidade | RF-FE-001 |
-| `prettier` | Formatação (RNF-082) | RF-FE-001 |
-
-Scripts acrescentados por `RF-FE-001`: `format`, `test` e `test:coverage`. O comando `npm run lint && npm test && npm run build` DEVE passar no CI (RNF-004). Requisitos de aulas futuras introduzem suas próprias dependências (por exemplo, biblioteca de tabelas, gráficos ou Playwright), sempre justificadas no PR (RNF-014).
-
-**Variáveis de ambiente:** `meunegocio360-js/.env.example` documenta `VITE_API_BASE_URL`. O arquivo `.env.local` real não é versionado.
-
-## 2. Arquitetura
-
-Organização por funcionalidade (*feature-based*), com páginas finas e regra de dependência clara:
-
-```
-src/
-├── app/                    # bootstrap: providers, roteador, layout raiz, estilos globais
-├── features/
-│   └── <feature>/          # ex.: auth, clientes, produtos
-│       ├── api/            # chamadas HTTP da feature
-│       ├── components/     # componentes exclusivos da feature
-│       ├── hooks/          # hooks da feature (useLogin, useAuth ...)
-│       ├── pages/          # telas roteáveis (compõem componentes)
-│       ├── schemas.js      # schemas Zod
-│       └── index.js        # API pública da feature
-├── shared/
-│   ├── ui/                 # componentes de design system (Button, TextField, Alert ...)
-│   ├── lib/                # http client, utilitários
-│   └── styles/             # tokens, reset, tipografia
-└── test/                   # setup do Vitest, handlers do MSW
-```
+A estrutura de pastas do frontend está no [`README.md`](../README.md#frontend). Regras:
 
 | ID | Requisito |
 | --- | --- |
@@ -68,26 +20,29 @@ src/
 | RNF-FE-04 | Dados de servidor ficam no TanStack Query (cache, *loading*, erro). Estado global próprio de aplicação (ex.: sessão) via Context. Evitar `useEffect` para buscar dados e "prop drilling" além de dois níveis. |
 | RNF-FE-05 | Rotas carregadas com *code splitting* (`React.lazy`) por página, com *fallback* acessível de carregamento. |
 | RNF-FE-06 | Chaves de lista, `useEffect` com dependências corretas e ausência de avisos do `eslint-plugin-react-hooks` são obrigatórios. |
+| RNF-FE-07 | Todo estilo DEVE usar o **Bootstrap 5** (grid, utilitários e componentes como `.btn`, `.form-control`, `.card`, `.navbar`, `.table`, `.alert`, `.spinner-border`). NÃO DEVE usar outro framework de CSS nem recriar componentes que o Bootstrap já oferece. |
+| RNF-FE-08 | O Bootstrap DEVE ser importado a partir do Sass (`bootstrap/scss`), com a personalização do tema concentrada em `src/shared/styles/theme.scss` (seção 2). CSS próprio só para o que o Bootstrap não cobre, sempre reutilizando variáveis do tema. Cores, fontes e tamanhos NÃO DEVEM ser escritos direto em componentes nem em `style` inline. |
+| RNF-FE-09 | Componentes com comportamento (menus, colapsos, modais, *dropdowns*, *toasts*) DEVEM usar `react-bootstrap`. O JavaScript do Bootstrap NÃO DEVE manipular o DOM diretamente em componentes React. |
 
-## 3. Identidade visual (design tokens)
+## 2. Estilos e identidade visual
 
-A paleta, a tipografia e o espaçamento DEVEM ser definidos **uma única vez** como variáveis CSS em `src/shared/styles/tokens.css` e consumidos por todos os componentes. Valores de cor e fonte NÃO DEVEM ser escritos diretamente em componentes.
+A interface é construída sobre o **Bootstrap 5** (RNF-FE-07). A identidade da marca é aplicada **uma única vez**, no tema do Bootstrap (RNF-FE-08).
 
-### 3.1 Paleta
+### 2.1 Paleta
 
-| Token | Cor | Uso |
-| --- | --- | --- |
-| `--color-primary` (Laranja) | `#EC4E26` | Botões primários, barra de navegação, destaque de marca |
-| `--color-surface` (Creme) | `#FCF5F0` | Fundo de páginas e cartões |
-| `--color-muted` (Cinza) | `#4A3F39` | Linhas de tabelas, bordas de cartões e texto secundário |
-| `--color-text` (Preto) | `#1F1612` | Texto principal |
-| `--color-footer` (Laranja amarronzado claro) | `#CDBBAE` | Rodapé |
+| Cor | Valor | Uso | Variável Sass do Bootstrap |
+| --- | --- | --- | --- |
+| Laranja | `#EC4E26` | Botões primários, barra de navegação, destaque de marca | `$primary` |
+| Creme | `#FCF5F0` | Fundo de páginas e cartões | `$body-bg`, `$card-bg` |
+| Cinza | `#4A3F39` | Linhas de tabelas, bordas de cartões e texto secundário | `$border-color`, `$table-border-color`, `$card-border-color`, `$body-secondary-color` |
+| Preto | `#1F1612` | Texto principal | `$body-color`, `$color-contrast-dark` |
+| Laranja amarronzado claro | `#CDBBAE` | Rodapé | Cor adicionada ao mapa `$theme-colors` (ex.: `footer`, gerando `bg-footer`) |
 
-Tokens adicionais obrigatórios: `--color-error`, `--color-success` e `--color-focus` (anel de foco), definidos pela equipe com contraste AA contra o fundo em que forem usados.
+Cores de feedback e foco também DEVEM ser definidas no tema, com contraste AA contra o fundo em que forem usadas (seção 2.2): `$danger`, `$success` e o anel de foco (`$focus-ring-color`).
 
-### 3.2 Contraste (WCAG 2.2 AA, RNF-060)
+### 2.2 Contraste (WCAG 2.2 AA, RNF-060)
 
-Razões de contraste calculadas para os pares da paleta original:
+Razões de contraste calculadas para os pares da paleta e para as cores de feedback padrão do Bootstrap:
 
 | Texto sobre fundo | Razão | Texto normal (mín. 4,5:1) | Texto grande (mín. 3:1) |
 | --- | --- | --- | --- |
@@ -97,82 +52,102 @@ Razões de contraste calculadas para os pares da paleta original:
 | Cinza sobre Laranja amarronzado | 5,5:1 | Passa | Passa |
 | **Creme sobre Laranja** | **3,4:1** | **Não passa** | Passa |
 | **Laranja sobre Creme** | **3,4:1** | **Não passa** | Passa |
+| **Branco sobre Laranja** | **3,7:1** | **Não passa** | Passa |
+| **`$danger` padrão do Bootstrap (`#DC3545`) sobre Creme** | **4,2:1** | **Não passa** | Passa |
+| **`$success` padrão do Bootstrap (`#198754`) sobre Creme** | **4,2:1** | **Não passa** | Passa |
+| `#B02A37` (vermelho) sobre Creme | 6,0:1 | Passa | Passa |
+| `#146C43` (verde) sobre Creme | 6,0:1 | Passa | Passa |
 
-Consequências obrigatórias (ajustes em relação ao uso descrito na versão anterior da paleta):
+Consequências obrigatórias no tema e no uso dos componentes:
 
-- **Texto de botão primário:** usar **Preto** (`--color-text`) sobre Laranja. Creme sobre Laranja só é permitido em texto grande (≥ 24 px, ou ≥ 18,66 px em negrito).
-- **Botões secundários e estados `:hover`** com texto Laranja sobre Creme: só com texto grande/negrito conforme acima, e sempre com borda visível. Para texto pequeno, usar Preto ou Cinza.
+- **Botão primário:** texto **Preto** sobre Laranja. Manter `$min-contrast-ratio` em 4,5 (padrão) e definir `$color-contrast-dark` como o Preto da marca, para que o Bootstrap escolha o texto de `.btn-primary` automaticamente. Branco e Creme sobre Laranja só são permitidos em texto grande (≥ 24 px, ou ≥ 18,66 px em negrito).
+- **Barra de navegação laranja:** texto e links em Preto. NÃO usar `navbar-dark`, `text-white` nem texto Creme.
+- **Botões secundários (`btn-outline-*`) e estados `:hover`** com texto Laranja sobre Creme: só com texto grande/negrito e borda visível. Para texto pequeno, usar Preto (`btn-outline-dark`) ou Cinza.
+- **Links:** `$link-color` em Preto (ou Cinza), sempre sublinhados, pois Laranja sobre Creme não atende ao contraste em texto normal.
+- **Feedback:** definir `$danger` como `#B02A37` e `$success` como `#146C43`.
+- **Foco:** anel de foco com contraste mínimo de 3:1 contra o fundo.
 - Informação NUNCA DEVE ser transmitida apenas por cor (ex.: erro precisa de ícone ou texto, além de vermelho).
 
-### 3.3 Tipografia
+### 2.3 Tipografia
 
-| Uso | Fonte | Pesos |
-| --- | --- | --- |
-| Títulos | Barlow Condensed | 500, 600 e 700 |
-| Texto, tabelas, formulários e rodapé | Barlow | 400, 500 e 600 |
+| Uso | Fonte | Pesos | Variável Sass do Bootstrap |
+| --- | --- | --- | --- |
+| Títulos | Barlow Condensed | 500, 600 e 700 | `$headings-font-family`, `$headings-font-weight` |
+| Texto, tabelas, formulários e rodapé | Barlow | 400, 500 e 600 | `$font-family-sans-serif`, `$font-weight-base` |
 
-- As fontes DEVEM ser **auto-hospedadas** via `@fontsource` (importando apenas os pesos acima), e não carregadas do Google Fonts: evita requisição a terceiros (privacidade/LGPD) e melhora desempenho. Usar `font-display: swap`.
-- Escala tipográfica e espaçamento definidos como tokens (`--font-size-*`, `--space-*`). Corpo de texto com no mínimo 16 px.
+- As fontes DEVEM ser **auto-hospedadas** via `@fontsource` (importando apenas os pesos acima), e não carregadas do Google Fonts: evita requisição a terceiros (privacidade/LGPD) e melhora desempenho.
+- Corpo de texto com no mínimo 16 px (`$font-size-base` de `1rem`).
 
-## 4. Camada HTTP, sessão e roteamento
+## 3. Camada HTTP, sessão e roteamento
 
 | ID | Requisito |
 | --- | --- |
-| RNF-FE-10 | Um único cliente HTTP (`shared/lib/http`), baseado em `fetch`, lê a URL base de `VITE_API_BASE_URL` (única para todos os serviços, decisão D-06). Chamadas aos endpoints `/auth/*` DEVEM usar `credentials: "include"` para enviar/receber o cookie de refresh. Variáveis `VITE_*` são **públicas**: NUNCA colocar segredos nelas. |
+| RNF-FE-10 | Um único cliente HTTP (`shared/lib/http`), baseado em `fetch`, lê a URL base de `VITE_API_BASE_URL`, que DEVE ser **relativa** (`/api/v1`) e única para todos os serviços (RNF-103). Em desenvolvimento, o `server.proxy` do Vite repassa `/api` ao backend local. As chamadas aos endpoints `/auth/*` DEVEM enviar o cookie de refresh (`credentials: "same-origin"`, o padrão do `fetch`). Variáveis `VITE_*` são **públicas**: NUNCA colocar segredos nelas. |
 | RNF-FE-11 | O cliente DEVE: injetar `Authorization: Bearer`, enviar `X-Request-Id`, aplicar *timeout* (`AbortController`), interpretar `application/problem+json` em um erro tipado (`ApiError` com `status`, `code`, `detail`, `errors`) e tratar `401` globalmente: tentar **uma única renovação** de sessão (`/auth/refresh`) e repetir a requisição original; se a renovação falhar, encerrar a sessão e redirecionar ao login. |
-| RNF-FE-12 | Tokens NÃO DEVEM ser guardados em `localStorage` nem `sessionStorage` (acessíveis a qualquer script, inclusive um XSS). O **token de acesso** fica **em memória** (contexto de autenticação). O **refresh token** é um cookie `HttpOnly` gerenciado pelo navegador e **inacessível ao JavaScript**: o frontend nunca o lê nem o grava. A sessão sobrevive ao recarregamento porque, na inicialização, o app chama `/auth/refresh` para obter um novo token de acesso. |
+| RNF-FE-12 | Tokens NÃO DEVEM ser guardados em `localStorage` nem `sessionStorage` (acessíveis a qualquer script, inclusive um XSS). O **token de acesso** fica **em memória** (contexto de autenticação). O **refresh token** é um cookie `HttpOnly` gerenciado pelo navegador e **inacessível ao JavaScript**: o frontend nunca o lê nem o grava. |
 | RNF-FE-15 | Renovações simultâneas dentro da mesma aba DEVEM ser **agrupadas** (*single-flight*): se várias requisições recebem `401` ao mesmo tempo, apenas uma chamada a `/auth/refresh` é feita e todas aguardam seu resultado. Como o refresh token é rotativo, duas chamadas paralelas com o mesmo cookie derrubariam a sessão (detecção de reuso do backend). |
 | RNF-FE-13 | Rotas protegidas DEVEM usar um componente de guarda (`RequireAuth`). Controle de acesso no frontend é apenas UX; a autorização real é do backend. |
 | RNF-FE-14 | A decisão de comportamento diante de erros usa o campo `code` do erro, nunca o texto da mensagem. |
 
-## 5. Formulários, acessibilidade e UX
+## 4. Formulários, acessibilidade e UX
 
 | ID | Requisito |
 | --- | --- |
-| RNF-FE-20 | Formulários com React Hook Form + schema Zod, mensagens em português. A validação do cliente espelha a do servidor, mas nunca a substitui (RNF-020). |
+| RNF-FE-20 | Formulários com React Hook Form + schema Zod, com a marcação de validação do Bootstrap (`is-invalid`, `invalid-feedback`) e mensagens em português. A validação do cliente espelha a do servidor, mas nunca a substitui (RNF-020). |
 | RNF-FE-21 | Todo campo DEVE ter `<label>` visível associado, `autocomplete` correto, tipo de `input` adequado e mensagem de erro ligada por `aria-describedby`/`aria-invalid`. |
 | RNF-FE-22 | Erros de formulário e de servidor DEVEM ser anunciados a leitores de tela (`role="alert"` ou região `aria-live`) e o foco levado ao primeiro campo inválido ou à mensagem. |
 | RNF-FE-23 | Navegação completa por teclado, ordem de foco lógica, foco visível com contraste mínimo de 3:1 e alvos interativos com pelo menos 44×44 px. |
 | RNF-FE-24 | HTML semântico (`main`, `nav`, `header`, `footer`, `h1` único por tela, botões `<button>`, links `<a>`). Atributo `lang="pt-BR"` no documento e título de página (`<title>`) por rota. |
 | RNF-FE-25 | Botões que disparam requisições DEVEM ficar desabilitados e exibir estado de carregamento, impedindo envio duplicado. |
-| RNF-FE-26 | Layout *mobile-first*, funcional a partir de 360 px, sem rolagem horizontal. Respeitar `prefers-reduced-motion`. |
+| RNF-FE-26 | Layout *mobile-first* com a grade do Bootstrap (RNF-061). Respeitar `prefers-reduced-motion`. |
 
-## 6. Segurança, desempenho e testes
+## 5. Segurança, desempenho e testes
 
 | ID | Requisito |
 | --- | --- |
 | RNF-FE-30 | NÃO DEVE usar `dangerouslySetInnerHTML` com conteúdo não sanitizado, `eval` ou injeção manual de HTML. Dados da API são sempre tratados como não confiáveis. |
-| RNF-FE-31 | Dependências auditadas (`npm audit` no CI) e *lockfile* versionado. Dependências sugeridas por IA DEVEM ser conferidas quanto à existência, versão, licença e manutenção antes da instalação. |
+| RNF-FE-31 | Dependências auditadas (RNF-026) e *lockfile* versionado. Dependências sugeridas por IA DEVEM ser conferidas quanto à existência, versão, licença e manutenção antes da instalação. |
 | RNF-FE-32 | Orçamento de desempenho (build de produção): carga inicial de JavaScript idealmente ≤ 200 kB comprimidos; LCP ≤ 2,5 s em conexão simulada de 4G para telas públicas. |
-| RNF-FE-33 | Consultas por papel e acessibilidade (`getByRole`, `getByLabelText`) são o padrão em testes. `data-testid` só como último recurso. |
-| RNF-FE-34 | A API é simulada com **MSW** nos testes, usando respostas fiéis ao contrato do backend (inclusive `problem+json`). Não usar *mocks* manuais do `fetch`. |
-| RNF-FE-35 | Toda página nova DEVE ter pelo menos uma verificação automática de acessibilidade com `vitest-axe`, sem violações. |
+| RNF-FE-33 | Na fase de testes, consultas por papel e acessibilidade (`getByRole`, `getByLabelText`) são o padrão em testes. `data-testid` só como último recurso. |
+| RNF-FE-34 | Na fase de testes, a API é simulada com **MSW**, usando respostas fiéis ao contrato do backend (inclusive `problem+json`). Não usar *mocks* manuais do `fetch`. |
+| RNF-FE-35 | Na fase de testes, toda página nova DEVE ter pelo menos uma verificação automática de acessibilidade com `vitest-axe`, sem violações. |
 
 ---
 
 ## RF-FE-001 — Fluxo de login do usuário
 
-> **Dependências:** `RF-BE-001` (contrato de `POST /api/v1/auth/login`, `/auth/refresh`, `/auth/logout` e `GET /api/v1/auth/me`). Enquanto o backend não estiver pronto, o frontend DEVE ser desenvolvido contra handlers MSW que seguem o contrato, inclusive o comportamento do cookie de refresh.
+> **Dependências:** `RF-BE-001` (contrato de `POST /api/v1/auth/login`, `/auth/refresh`, `/auth/logout` e `GET /api/v1/auth/me`). O frontend é desenvolvido contra o backend em execução local.
 
 ### História de usuário
 
 Como **usuário cadastrado**, quero **informar meu e-mail e minha senha em uma tela de login simples e acessível e continuar autenticado ao recarregar a página**, para **usar o sistema sem precisar entrar de novo a cada atualização**, vendo somente as áreas protegidas quando estiver autenticado.
 
-### Escopo desta aula
+### Escopo
 
-**Dentro do escopo (obrigatório):** tela `/login`, validação do formulário, integração com a API, contexto de autenticação com token de acesso em memória, **restauração de sessão por refresh token (cookie `HttpOnly`)** na inicialização, renovação automática diante de `401`, rota protegida `/` (página inicial provisória), redirecionamento pós-login, botão de sair, tratamento de sessão expirada e de todos os estados de erro, remoção do conteúdo de exemplo do template Vite (`App.jsx`, contador, logos), aplicação dos tokens de identidade visual e testes.
+**Dentro do escopo (obrigatório):** tela `/login`, validação do formulário, integração com a API, contexto de autenticação com token de acesso em memória, **restauração de sessão por refresh token (cookie `HttpOnly`)** na inicialização, renovação automática diante de `401`, rota protegida `/` (página inicial provisória), redirecionamento pós-login, botão de sair, tratamento de sessão expirada e de todos os estados de erro, remoção do conteúdo de exemplo do template Vite (`App.jsx`, contador, logos), aplicação do tema do Bootstrap (seção 2) e telas construídas com componentes do Bootstrap.
 
 **Fora do escopo:** cadastro de usuário, "esqueci minha senha", "lembrar de mim" (a duração da sessão é definida pelo backend), controle de acesso por perfil e menus definitivos.
 
 ### Dependências introduzidas
 
-`react-router`, TanStack Query, React Hook Form + Zod, `@fontsource/*`, Vitest, Testing Library, MSW, `vitest-axe` e Prettier (ver seção 1.1).
+O `package.json` gerado já contém a **base**: React, ReactDOM e a toolchain Vite/ESLint (scripts `dev`, `build`, `lint` e `preview`). Este requisito introduz (RNF-015):
+
+| Dependência | Para quê |
+| --- | --- |
+| `react-router` | Roteamento e rotas protegidas |
+| `@tanstack/react-query` | Estado de servidor (cache, carregamento, erro) |
+| `react-hook-form`, `zod`, `@hookform/resolvers` | Formulários e validação |
+| `bootstrap`, `react-bootstrap`, `sass` | Estilos e componentes (RNF-FE-07 a RNF-FE-09) |
+| `@fontsource/barlow`, `@fontsource/barlow-condensed` | Fontes auto-hospedadas |
+| `prettier` | Formatação (RNF-082), com o script `format` |
+
+Dependências de teste (Vitest, Testing Library, MSW, `vitest-axe`) entram na fase de testes. A variável `VITE_API_BASE_URL` é documentada em `meunegocio360-js/.env.example`.
 
 ### Telas e rotas
 
 | Rota | Acesso | Descrição |
 | --- | --- | --- |
-| `/login` | Público (usuário já autenticado é redirecionado para `/`) | Formulário de login centralizado, dentro de um cartão Creme, com o título "Entrar" (Barlow Condensed) e o nome do produto. |
+| `/login` | Público (usuário já autenticado é redirecionado para `/`) | Formulário de login centralizado, dentro de um `card`, com o título "Entrar" (Barlow Condensed) e o nome do produto. |
 | `/` | Protegido | Página inicial provisória: saudação com o nome do usuário, perfil e botão **Sair**. Será substituída pelo dashboard em requisito futuro. |
 | `*` | Público | Página "não encontrada" com link para a página inicial. |
 
@@ -180,7 +155,7 @@ Como **usuário cadastrado**, quero **informar meu e-mail e minha senha em uma t
 
 1. **Inicialização do app:** o `AuthProvider` entra no estado `carregando` e chama `POST /auth/refresh` (com `credentials: "include"`). Se responder `200`, guarda `accessToken` e `usuario` em memória e passa a `autenticado`; se responder `401`, passa a `anônimo`. Durante `carregando`, o app exibe um indicador de carregamento acessível (`role="status"`) e **não** redireciona nem renderiza telas protegidas ou de login, para evitar "piscar" a tela de login a quem já tem sessão.
 2. **Login:** `POST /auth/login` → `autenticado`.
-3. **Requisição autenticada com `401`:** o cliente HTTP faz **uma** renovação (single-flight, RNF-FE-15) e repete a requisição. Se a renovação falhar, a sessão é encerrada com a mensagem de sessão expirada.
+3. **Requisição autenticada com `401`:** renovação e repetição da requisição conforme RNF-FE-11 e RNF-FE-15. Se a renovação falhar, a sessão é encerrada com a mensagem de sessão expirada.
 4. **Renovação preventiva (recomendada):** agendar a renovação cerca de 60 s antes de `expiresIn`, cancelando o agendamento no logout e ao desmontar o provider.
 5. **Logout:** `POST /auth/logout` (o resultado é ignorado em caso de falha de rede), descarte do token e do cache do TanStack Query, e redirecionamento a `/login`.
 
@@ -284,7 +259,7 @@ Cenário: Sair
 Cenário: Acessibilidade
   Quando uso apenas o teclado (Tab, Shift+Tab, Enter)
   Então consigo preencher e enviar o formulário com foco sempre visível
-  E a tela não tem violações detectadas pelo axe
+  E a tela não tem violações no axe DevTools ou no Lighthouse
   E o contraste de todos os textos atende ao WCAG 2.2 AA
 
 Cenário: Responsividade
@@ -294,9 +269,11 @@ Cenário: Responsividade
 
 ### Requisitos não funcionais com destaque neste requisito
 
-RNF-020, RNF-060, RNF-061, RNF-062, RNF-FE-10 a RNF-FE-15, RNF-FE-20 a RNF-FE-26, RNF-FE-30, RNF-FE-34 e RNF-FE-35.
+RNF-020, RNF-060, RNF-061, RNF-062, RNF-103, RNF-FE-07 a RNF-FE-15, RNF-FE-20 a RNF-FE-26 e RNF-FE-30.
 
-### Testes exigidos
+### Testes previstos
+
+Implementados na fase de testes (RNF-016). Até lá, os critérios de aceite são verificados manualmente.
 
 - **Componente/integração (Vitest + RTL + MSW):** formulário (validações, estados de carregamento e de erro por tipo de resposta), `LoginPage` completa, `AuthProvider` (restauração de sessão com sucesso, `401` e falha de rede), `RequireAuth`, redirecionamento com `from`, logout.
 - **Cliente HTTP (unitário):** injeção de cabeçalhos, *timeout*, conversão de `problem+json` em `ApiError`, **renovação única e repetição da requisição**, **agrupamento (single-flight) de renovações simultâneas** e encerramento de sessão quando a renovação falha. Os handlers MSW devem simular a rotação do refresh token.
@@ -307,7 +284,7 @@ RNF-020, RNF-060, RNF-061, RNF-062, RNF-FE-10 a RNF-FE-15, RNF-FE-20 a RNF-FE-26
 ### Pontos de atenção ao revisar código gerado por IA
 
 - Token de acesso ou de refresh salvo em `localStorage`/`sessionStorage` ou em cookie acessível por JavaScript (a IA sugere isso com muita frequência). Aqui o refresh é exclusivamente cookie `HttpOnly`, controlado pelo servidor.
-- Esquecer `credentials: "include"` nas chamadas de autenticação (a sessão "não persiste" e a IA tenta "consertar" guardando token no navegador).
+- Apontar a URL base direto para o backend (outra origem) ou omitir o envio do cookie: a sessão "não persiste" e a IA tenta "consertar" guardando token no navegador, ou enfraquecendo o `SameSite` do cookie.
 - **Laço infinito de renovação:** a chamada a `/auth/refresh` receber `401` e disparar outra renovação. A rota de refresh nunca deve entrar no fluxo de "renovar e repetir".
 - Renovações paralelas sem *single-flight*, o que derruba a sessão por reuso do token rotativo; renovação disparada duas vezes pelo modo estrito do React em desenvolvimento (`StrictMode`) sem controle adequado.
 - Tratar falha de rede na restauração de sessão como "sessão inválida" e enviar o usuário ao login.
@@ -315,7 +292,7 @@ RNF-020, RNF-060, RNF-061, RNF-062, RNF-FE-10 a RNF-FE-15, RNF-FE-20 a RNF-FE-26
 - Mensagens distintas para "usuário não existe" e "senha incorreta", ou exibição do `detail` bruto do servidor.
 - Validação feita só com `required` do HTML, ou apenas no cliente confiando nela como segurança.
 - Chamada `fetch` solta dentro do componente, sem passar pelo cliente HTTP, e `useEffect` usado para buscar dados.
-- Cores e fontes escritas direto no CSS dos componentes, ou cor de texto que não atende ao contraste (ver seção 3.2), `outline: none` sem substituto.
+- CSS próprio ou cores e fontes escritas direto nos componentes, fora do tema do Bootstrap, outro framework de CSS, ou JavaScript do Bootstrap manipulando o DOM do React; ou cor de texto que não atende ao contraste (ver seção 2.2), `outline: none` sem substituto, `navbar-dark`/`text-white` sobre o Laranja.
 - Rótulos substituídos por *placeholder*, falta de `aria-live`/`role="alert"`, foco perdido após erro.
 - Redirecionamento aberto: `from` aceitando URLs externas. Só caminhos internos começando com `/` (e não `//`) são permitidos.
 - Pacotes inexistentes, desatualizados ou com API antiga (ex.: versões anteriores do React Router) sugeridos pela IA.
@@ -325,5 +302,5 @@ RNF-020, RNF-060, RNF-061, RNF-062, RNF-FE-10 a RNF-FE-15, RNF-FE-20 a RNF-FE-26
 
 1. **Sincronização entre abas:** ao sair ou expirar em uma aba, as demais também encerram a sessão (`BroadcastChannel`), e a renovação é coordenada entre abas para não gerar reuso de token.
 2. Botão "mostrar/ocultar senha" acessível (com `aria-pressed` e rótulo dinâmico).
-3. Alternância de tema claro/escuro derivada dos tokens, mantendo AA.
-4. Teste de ponta a ponta com Playwright e relatório de acessibilidade automatizado no CI.
+3. Alternância de tema claro/escuro derivada do tema do Bootstrap (`data-bs-theme`), mantendo AA.
+4. Teste de ponta a ponta com Playwright e relatório de acessibilidade automatizado.

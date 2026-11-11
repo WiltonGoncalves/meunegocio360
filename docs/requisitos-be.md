@@ -2,51 +2,14 @@
 
 | | |
 | --- | --- |
-| **Versão** | 2.0 |
+| **Versão** | 2.1 |
 | **Atualizado em** | 11/11/2026 |
 | **Projeto** | `meunegocio360-*` (módulo por serviço) |
 | **Herda de** | [`requisitos-gerais.md`](./requisitos-gerais.md) (todos os RNF se aplicam; aqui só há o que é específico do backend) |
 
-## 1. Stack e dependências
+## 1. Arquitetura
 
-| Item | Definição |
-| --- | --- |
-| Linguagem / runtime | Java 17 ou superior |
-| Framework | Spring Boot 4.x com Spring MVC (`spring-boot-starter-webmvc`) |
-| Persistência | Spring Data JPA + Hibernate, MySQL 8.x |
-| Segurança | Spring Security |
-| Validação | Bean Validation (`spring-boot-starter-validation`) |
-| Documentação de API | springdoc-openapi |
-| Build | Maven Wrapper (`./mvnw`) |
-
-### 1.1 Dependências: base e introdução ao longo do curso
-
-O `pom.xml` gerado já contém a **base**: web MVC, Spring Data JPA, Spring Security, validação, springdoc, DevTools, driver MySQL e os *starters* de teste. Todo o resto é acrescentado **no requisito que o exige** (RNF-015). Nesta base, o único requisito é `RF-BE-001`, que introduz:
-
-| Dependência | Para quê | Introduzida em |
-| --- | --- | --- |
-| Flyway (`flyway-core` + `flyway-mysql`) | Migrations de banco (RNF-BE-20) | RF-BE-001 |
-| `spring-boot-starter-oauth2-resource-server` | Validação de JWT (Nimbus) no `SecurityFilterChain` e emissão com `JwtEncoder` | RF-BE-001 |
-| Spring Boot Actuator | *Health checks* (RNF-051) | RF-BE-001 |
-| Testcontainers (MySQL + JUnit 5) | Testes de integração com banco real (RNF-BE-25) | RF-BE-001 |
-| JaCoCo e Spotless | Cobertura e formatação (RNF-042, RNF-082) | RF-BE-001 |
-| ArchUnit | Teste das regras de camada (RNF-010) | RF-BE-001 |
-
-Requisitos futuros introduzem suas próprias dependências (por exemplo, limitação de requisições, mensageria ou cliente HTTP resiliente para falar com outros serviços), sempre justificadas no PR (RNF-014).
-
-## 2. Arquitetura
-
-O `meunegocio360-core` é o **microsserviço Núcleo** (decisão D-01): autônomo, com banco próprio (`meunegocio360_core`) e API própria, e é o **emissor de identidade** do sistema (RNF-094). Internamente, é organizado por funcionalidade. Pacote raiz: `br.com.meunegocio360.core`.
-
-```
-br.com.meunegocio360.core
-├── <feature>/                  # ex.: auth, usuario, cliente, produto
-│   ├── api/                    # controllers, DTOs de entrada/saída, mapeadores
-│   ├── application/            # casos de uso (serviços de aplicação), transações
-│   ├── domain/                 # entidades, regras de negócio, interfaces de repositório
-│   └── infra/                  # implementações JPA, adaptadores externos
-└── shared/                     # transversais: erros, segurança, configuração, auditoria
-```
+As regras de arquitetura entre serviços (banco por serviço, contratos, tokens) estão em [`requisitos-gerais.md`](./requisitos-gerais.md#32-microsserviços). A estrutura de pacotes está no [`README.md`](../README.md#backend-cada-serviço). Dentro de cada serviço:
 
 | ID | Requisito |
 | --- | --- |
@@ -55,14 +18,13 @@ br.com.meunegocio360.core
 | RNF-BE-03 | Injeção de dependências DEVE ser por **construtor**; sem `@Autowired` em campos. |
 | RNF-BE-04 | Fronteiras transacionais (`@Transactional`) ficam na camada `application`. |
 | RNF-BE-05 | Uma feature NÃO DEVE acessar diretamente o repositório ou as entidades internas de outra feature. A comunicação é por interface pública do caso de uso. |
-| RNF-BE-06 | O Núcleo NÃO DEVE conhecer o código, o banco nem os modelos internos dos serviços Serviços e Suprimentos. Qualquer dado que eles precisem do Núcleo (por exemplo, clientes e produtos) é exposto por API versionada, e os dados deles que o Núcleo precisar são consumidos pela API ou por eventos desses serviços (RNF-090, RNF-091). |
 
-## 3. Convenções da API REST
+## 2. Convenções da API REST
 
 | ID | Requisito |
 | --- | --- |
 | RNF-BE-10 | Prefixo `/api/v1`. Recursos no plural e em *kebab-case* (`/api/v1/ordens-de-servico`). Verbos HTTP com semântica correta: `GET` (leitura), `POST` (criação/ação), `PUT`/`PATCH` (atualização), `DELETE` (remoção). |
-| RNF-BE-11 | JSON em `camelCase`. Datas em ISO 8601 UTC (`2026-11-11T14:30:00Z`). Identificadores públicos são **UUID**, nunca sequenciais. |
+| RNF-BE-11 | JSON em `camelCase` (datas e valores conforme RNF-033). Identificadores públicos são **UUID**, nunca sequenciais. |
 | RNF-BE-12 | Códigos de status: `200` leitura/ação, `201` criação (com `Location`), `204` sem conteúdo, `400` requisição inválida, `401` não autenticado, `403` sem permissão, `404` não encontrado, `409` conflito, `422` regra de negócio violada, `429` limite excedido, `500` erro inesperado. |
 | RNF-BE-13 | Paginação com parâmetros `page` (a partir de 0), `size` (padrão 20, máximo 100) e `sort`. Resposta: `{ "content": [...], "page": 0, "size": 20, "totalElements": 0, "totalPages": 0 }`. |
 | RNF-BE-14 | Todos os erros usam `application/problem+json` (RFC 9457) com o formato abaixo, tratados por um único `@RestControllerAdvice`. |
@@ -86,7 +48,7 @@ Formato padrão de erro:
 
 O campo `code` é um identificador estável, em `UPPER_SNAKE_CASE`, usado pelo frontend para decidir o comportamento. O texto de `detail` e `message` NÃO DEVE ser usado como lógica pelo cliente.
 
-## 4. Persistência
+## 3. Persistência
 
 | ID | Requisito |
 | --- | --- |
@@ -95,27 +57,26 @@ O campo `code` é um identificador estável, em `UPPER_SNAKE_CASE`, usado pelo f
 | RNF-BE-22 | Tabelas em `snake_case` e no singular ou plural de forma consistente (padrão do projeto: **singular**, ex.: `usuario`). Toda tabela tem `id` (UUID), `criado_em`, `atualizado_em` (UTC) e `versao` (controle otimista com `@Version`). |
 | RNF-BE-23 | Restrições de integridade (`NOT NULL`, `UNIQUE`, chaves estrangeiras, índices em colunas de busca) DEVEM existir no banco, e não apenas na aplicação. |
 | RNF-BE-24 | Dados de seed apenas para o perfil `dev`, por migration ou *runner* dedicado. Nunca em `prod`. |
-| RNF-BE-25 | Testes de repositório e de integração DEVEM usar MySQL real via Testcontainers, e não um banco em memória com dialeto diferente. |
+| RNF-BE-25 | Na fase de testes, testes de repositório e de integração DEVEM usar MySQL real via Testcontainers, e não um banco em memória com dialeto diferente. |
 
-## 5. Configuração e ambientes
+## 4. Configuração e ambientes
 
 | ID | Requisito |
 | --- | --- |
-| RNF-BE-30 | Arquivos `application.yaml` (comum) e `application-{dev,test,prod}.yaml`. Valores sensíveis e dependentes de ambiente vêm de variáveis de ambiente. |
-| RNF-BE-31 | O repositório contém `.env.example` e `compose.yaml` (MySQL local do Núcleo) na raiz. Em desenvolvimento, o `application-dev.yaml` DEVE importar o `.env` com `spring.config.import: optional:file:../.env[.properties]`; em produção, as variáveis vêm do ambiente. Variáveis mínimas: `DB_URL`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS` (lista completa em `.env.example`). |
+| RNF-BE-31 | Em desenvolvimento, o `application-dev.yaml` DEVE importar o `.env` da raiz com `spring.config.import: optional:file:../.env[.properties]`; nos demais ambientes as variáveis vêm do ambiente (RNF-052). As variáveis são as documentadas em `.env.example`. A aplicação DEVE usar `server.port: ${PORT:8080}` (RNF-101). |
 | RNF-BE-32 | A aplicação DEVE falhar na inicialização (*fail fast*) se uma variável obrigatória estiver ausente ou inválida (por exemplo, `JWT_SECRET` com menos de 32 bytes). |
 
-## 6. Segurança, observabilidade e qualidade
+## 5. Segurança, observabilidade e qualidade
 
 | ID | Requisito |
 | --- | --- |
-| RNF-BE-40 | `SecurityFilterChain` explícito: sessão `STATELESS`, *deny-by-default* (`anyRequest().authenticated()`), com exceções listadas e documentadas. O CSRF do Spring PODE ficar desabilitado porque a autenticação das APIs é por cabeçalho `Authorization`; os dois únicos endpoints que usam cookie (`/auth/refresh` e `/auth/logout`) DEVEM ser protegidos por `SameSite=Strict`, cookie restrito ao seu caminho e verificação do cabeçalho `Origin` contra a lista de origens permitidas. |
+| RNF-BE-40 | `SecurityFilterChain` explícito: sessão `STATELESS` e *deny-by-default* (`anyRequest().authenticated()`, RNF-021), com exceções listadas e documentadas. O CSRF do Spring PODE ficar desabilitado porque a autenticação das APIs é por cabeçalho `Authorization`; os dois únicos endpoints que usam cookie (`/auth/refresh` e `/auth/logout`) DEVEM ser protegidos por `SameSite=Strict`, cookie restrito ao seu caminho e verificação do cabeçalho `Origin` contra a lista de origens permitidas. |
 | RNF-BE-41 | Cabeçalhos de segurança padrão do Spring Security mantidos (`X-Content-Type-Options`, `Cache-Control` em respostas autenticadas, HSTS em produção). |
-| RNF-BE-42 | CORS configurado por *bean* único, lendo as origens permitidas de `CORS_ALLOWED_ORIGINS`, com `allowCredentials = true` (necessário para o cookie de refresh) e, portanto, **sem** curinga `*`. |
-| RNF-BE-43 | Um filtro DEVE ler ou gerar `X-Request-Id`, colocá-lo no MDC dos logs e devolvê-lo na resposta e no campo `traceId` dos erros. |
-| RNF-BE-44 | Logs estruturados (JSON) via suporte nativo do Spring Boot nos perfis `test` e `prod`. Eventos de segurança (login com sucesso, falha, bloqueio) DEVEM ser registrados **sem** senha, token ou e-mail completo. |
-| RNF-BE-45 | Padrão de qualidade: `./mvnw verify` executa formatação (Spotless), testes unitários e de integração, regras de arquitetura e cobertura (JaCoCo). |
-| RNF-BE-46 | Testes: JUnit 5, Mockito e AssertJ; `@WebMvcTest`/`MockMvc` para a camada web; `@DataJpaTest` ou `@SpringBootTest` com Testcontainers para persistência e integração; Spring Security Test para cenários autenticados. |
+| RNF-BE-42 | CORS configurado por *bean* único, lendo as origens permitidas de `CORS_ALLOWED_ORIGINS` (a mesma lista usada na verificação de `Origin`), com `allowCredentials = true` e, portanto, **sem** curinga `*`, jamais em produção. O frontend usa a mesma origem (RNF-103); o CORS atende a chamadas diretas de outras origens. |
+| RNF-BE-43 | Um filtro DEVE ler ou gerar `X-Request-Id`, colocá-lo no MDC dos logs e devolvê-lo na resposta e no campo `traceId` dos erros (RNF-050). |
+| RNF-BE-44 | Logs estruturados via suporte nativo do Spring Boot nos perfis `test` e `prod`. Eventos de segurança (login com sucesso, falha, bloqueio) DEVEM ser registrados **sem** senha, token ou e-mail completo (RNF-023, RNF-025). |
+| RNF-BE-45 | `./mvnw verify` DEVE passar antes de cada PR. Ele executa a verificação de formatação (Spotless) e, a partir da fase de testes, os testes, as regras de arquitetura e a cobertura (JaCoCo). |
+| RNF-BE-46 | Na fase de testes: JUnit 5, Mockito e AssertJ; `@WebMvcTest`/`MockMvc` para a camada web; `@DataJpaTest` ou `@SpringBootTest` com Testcontainers para persistência e integração; Spring Security Test para cenários autenticados. |
 
 ---
 
@@ -136,7 +97,16 @@ Como **usuário cadastrado do sistema**, quero **entrar com meu e-mail e minha s
 
 ### Dependências introduzidas
 
-Flyway, `spring-boot-starter-oauth2-resource-server`, Actuator, Testcontainers (MySQL), JaCoCo, Spotless e ArchUnit (ver seção 1.1).
+O `pom.xml` gerado já contém a **base**: web MVC, Spring Data JPA, Spring Security, validação, springdoc, DevTools, driver MySQL e os *starters* de teste. Este requisito introduz (RNF-015):
+
+| Dependência | Para quê |
+| --- | --- |
+| Flyway (`flyway-core` + `flyway-mysql`) | Migrations de banco (RNF-BE-20) |
+| `spring-boot-starter-oauth2-resource-server` | Validação de JWT (Nimbus) no `SecurityFilterChain` e emissão com `JwtEncoder` |
+| Spring Boot Actuator | *Health check* (RNF-051, RNF-104) |
+| Spotless | Formatação (RNF-082) |
+
+Dependências de teste (Testcontainers, JaCoCo, ArchUnit) entram na fase de testes.
 
 ### Regras de negócio
 
@@ -225,7 +195,7 @@ Os endpoints `/auth/refresh` e `/auth/logout` DEVEM rejeitar com `403` (`code: "
 
 | Item | Definição |
 | --- | --- |
-| Algoritmo | HS256, com segredo de pelo menos 256 bits vindo de `JWT_SECRET` (decisão D-03; migrar para RS256 + JWKS antes de qualquer outro serviço validar tokens, RNF-094). |
+| Algoritmo | HS256, com segredo de pelo menos 256 bits vindo de `JWT_SECRET` (a migração para RS256 + JWKS está em RNF-094). |
 | Claims | `iss` (`meunegocio360-core`), `sub` (id do usuário), `iat`, `exp`, `jti` (UUID) e `perfil`. |
 | Validação | Assinatura, algoritmo esperado, `iss` e `exp`. Token com `alg: none` ou outro algoritmo DEVE ser rejeitado. |
 | Conteúdo | NÃO DEVE conter senha, *hash*, nem dados pessoais além do necessário. |
@@ -260,7 +230,7 @@ Migration `V2__criar_tabela_refresh_token.sql`:
 | `revogado_em` | `DATETIME(6)` | nulo (UTC); preenchido na rotação, no logout ou na revogação da família |
 | `criado_em` | `DATETIME(6)` | `NOT NULL` (UTC) |
 
-Tokens expirados ou revogados há mais de 30 dias DEVEM ser removidos por uma rotina agendada (`@Scheduled`). Não registrar IP nem *user-agent* nesta aula (minimização de dados, RNF-025).
+Tokens expirados ou revogados há mais de 30 dias DEVEM ser removidos por uma rotina agendada (`@Scheduled`). Não registrar IP nem *user-agent* (minimização de dados, RNF-025).
 
 **Seed de desenvolvimento (somente perfil `dev`):** um usuário `ADMIN` e um `USUARIO`, com e-mails fictícios e senhas lidas de variáveis de ambiente (`SEED_ADMIN_SENHA`, `SEED_USUARIO_SENHA`). Senhas de seed NÃO DEVEM ser gravadas em texto no repositório, nem existir em `prod`.
 
@@ -348,9 +318,11 @@ Cenário: Endpoints desconhecidos ou não liberados
 
 ### Requisitos não funcionais com destaque neste requisito
 
-RNF-021, RNF-022, RNF-023, RNF-024, RNF-025, RNF-027, RNF-031, RNF-050, RNF-094, RNF-BE-14, RNF-BE-40, RNF-BE-42, RNF-BE-43 e RNF-BE-44.
+RNF-021, RNF-022, RNF-023, RNF-024, RNF-025, RNF-050, RNF-094, RNF-BE-14, RNF-BE-40, RNF-BE-42, RNF-BE-43 e RNF-BE-44.
 
-### Testes exigidos
+### Testes previstos
+
+Implementados na fase de testes (RNF-016). Até lá, os critérios de aceite são verificados manualmente.
 
 - **Unitários** (sem Spring): casos de uso de login, refresh e logout (sucesso, senha errada, usuário inexistente, inativo, bloqueio e desbloqueio por tempo, rotação, expiração, reuso e revogação de família), usando um `Clock` injetável; emissão e validação do JWT (expirado, adulterado, `alg` errado).
 - **Web** (`MockMvc`): contrato de todos os endpoints, atributos do cookie, formato `problem+json`, cabeçalhos `Retry-After` e `WWW-Authenticate`, verificação de `Origin`.
