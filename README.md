@@ -1,4 +1,6 @@
-# MeuNegocio360
+<p align="center">
+  <img src="./assets/logo_meunegocio360_v1.png" alt="MeuNegócio360" width="600">
+</p>
 
 Sistema comercial de gestão de clientes, serviços e suprimentos para pequenas e médias empresas, desenvolvido com uso assistido de IA em todas as etapas do ciclo de desenvolvimento (requisitos, código, testes, revisão e deploy).
 
