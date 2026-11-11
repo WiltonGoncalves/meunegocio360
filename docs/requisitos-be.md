@@ -4,4 +4,4 @@
   - Java com Spring Boot
   - Banco de dados: MySql
 - Arquitetura: API REST
-- Padrão do projeto: Spring MVC
+- Padrão do projeto: Spring MVC e Microserviços
