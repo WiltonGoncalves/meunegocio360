@@ -1,0 +1,14 @@
+# Segredos e configuração local (RNF-005): versiona-se apenas os modelos .env.example
+.env
+.env.*
+!.env.example
+
+# Arquivos locais de editor e sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# Artefatos de build (cada serviço também tem seu próprio .gitignore)
+target/
+node_modules/
+dist/
