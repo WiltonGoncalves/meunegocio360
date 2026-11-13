@@ -1,3 +1,42 @@
 spring:
   application:
     name: meunegocio360-core
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+server:
+  port: ${PORT:8080}
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} [%thread] %-5level %logger{36} [requestId=%X{requestId}] - %msg%n"
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+app:
+  auth:
+    max-tentativas: ${APP_AUTH_MAX_TENTATIVAS:5}
+    bloqueio-minutos: ${APP_AUTH_BLOQUEIO_MINUTOS:15}
+    jwt:
+      expiracao-minutos: ${APP_AUTH_JWT_EXPIRACAO_MINUTOS:15}
+    refresh:
+      expiracao-dias: ${APP_AUTH_REFRESH_EXPIRACAO_DIAS:7}
+    cookie:
+      secure: ${APP_AUTH_COOKIE_SECURE:true}
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:}

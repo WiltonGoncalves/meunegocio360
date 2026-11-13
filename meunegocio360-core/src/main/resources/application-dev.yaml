@@ -1,0 +1,10 @@
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+app:
+  auth:
+    cookie:
+      secure: ${APP_AUTH_COOKIE_SECURE:false}
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
