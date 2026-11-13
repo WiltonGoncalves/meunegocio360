@@ -1,0 +1,15 @@
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+
+app:
+  auth:
+    cookie:
+      secure: ${APP_AUTH_COOKIE_SECURE:false}
+  api-docs:
+    public: true
+
+logging:
+  structured:
+    format:
+      console: ecs
