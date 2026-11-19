@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="576" height="144" viewBox="0 0 576 144" role="img" aria-labelledby="title">
+  <title id="title">MeuNegocio360</title>
+  <rect x="4" y="12" width="120" height="120" rx="28" fill="#EC4E26"/>
+  <path d="M32 98V46h14l18 25 18-25h14v52H82V68L64 91 46 68v30z" fill="#1F1612"/>
+  <text x="146" y="94" fill="#1F1612" font-family="Barlow, Arial, sans-serif" font-size="54" font-weight="600">MeuNegocio</text>
+  <text x="486" y="94" fill="#EC4E26" font-family="Barlow, Arial, sans-serif" font-size="54" font-weight="700">360</text>
+</svg>

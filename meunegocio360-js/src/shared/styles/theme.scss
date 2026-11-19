@@ -1,0 +1,54 @@
+$brand-orange: #ec4e26;
+$brand-cream: #fcf5f0;
+$brand-gray: #4a3f39;
+$brand-black: #1f1612;
+$brand-footer: #cdbbae;
+$brand-danger: #b02a37;
+$brand-success: #146c43;
+
+$primary: $brand-orange;
+$secondary: $brand-gray;
+$danger: $brand-danger;
+$success: $brand-success;
+$body-bg: $brand-cream;
+$body-color: $brand-black;
+$body-secondary-color: $brand-gray;
+$card-bg: $brand-cream;
+$card-border-color: $brand-gray;
+$border-color: $brand-gray;
+$table-border-color: $brand-gray;
+$color-contrast-dark: $brand-black;
+$min-contrast-ratio: 4.5;
+$link-color: $brand-black;
+$link-decoration: underline;
+$focus-ring-color: rgba($brand-black, 0.8);
+$focus-ring-opacity: 0.8;
+$focus-ring-width: 0.2rem;
+$input-focus-border-color: $brand-black;
+$input-focus-box-shadow: 0 0 0 0.25rem rgba($brand-black, 0.8);
+$btn-focus-box-shadow: 0 0 0 0.25rem rgba($brand-black, 0.8);
+$font-family-sans-serif:
+  "Barlow",
+  system-ui,
+  -apple-system,
+  "Segoe UI",
+  sans-serif;
+$headings-font-family: "Barlow Condensed", "Barlow", system-ui, sans-serif;
+$headings-font-weight: 600;
+$font-size-base: 1rem;
+$input-btn-padding-y: 0.75rem;
+$input-btn-padding-x: 1rem;
+
+$theme-colors: (
+  "primary": $primary,
+  "secondary": $secondary,
+  "success": $success,
+  "info": #0dcaf0,
+  "warning": #ffc107,
+  "danger": $danger,
+  "light": #f8f9fa,
+  "dark": $brand-black,
+  "footer": $brand-footer,
+);
+
+@import "bootstrap/scss/bootstrap";

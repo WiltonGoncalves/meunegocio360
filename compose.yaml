@@ -1,0 +1,44 @@
+# MeuNegocio360 - infraestrutura local de desenvolvimento
+#
+# Uso:
+#   cp .env.example .env        # preencha as senhas (o arquivo .env nunca é versionado)
+#   docker compose up -d        # sobe o MySQL do Núcleo
+#   docker compose down         # para os contêineres (mantém os dados)
+#   docker compose down -v      # para e APAGA os dados locais do banco
+#
+# Arquitetura de microsserviços: cada serviço tem o seu próprio banco (RNF-090).
+# Hoje só o Núcleo existe. Quando Serviços e Suprimentos forem implementados,
+# cada um acrescenta aqui o seu próprio serviço de banco (ex.: servicos-db,
+# suprimentos-db), com volume, porta e credenciais próprios.
+
+name: meunegocio360
+
+services:
+  core-db:
+    image: mysql:8.4
+    container_name: meunegocio360-core-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD no arquivo .env}
+      MYSQL_DATABASE: ${CORE_DB_NAME:-meunegocio360_core}
+      MYSQL_USER: ${DB_USER:-meunegocio360}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+00:00
+    ports:
+      # Exposto apenas em localhost: o banco não fica acessível pela rede.
+      - "127.0.0.1:${CORE_DB_PORT:-3306}:3306"
+    volumes:
+      - core-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  core-db-data:

@@ -1,0 +1,22 @@
+@import "./theme.scss";
+
+body {
+  min-width: 360px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 28rem;
+}
+
+.login-logo {
+  display: block;
+  width: min(100%, 18rem);
+  height: auto;
+  margin-inline: auto;
+}
+
+.app-content {
+  width: 100%;
+  max-width: 64rem;
+}

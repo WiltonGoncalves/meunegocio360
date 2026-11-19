@@ -1,16 +1,24 @@
-# React + Vite
+# MeuNegocio360 — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend React do MeuNegocio360, implementado com Vite e Bootstrap 5.
 
-Currently, two official plugins are available:
+## Executar localmente
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Inicie o backend Núcleo e o banco de dados seguindo o [README principal](../README.md).
+2. Copie `.env.example` para `.env.local` se precisar alterar o caminho da API.
+3. Execute `npm install` e `npm run dev`.
+4. Abra a URL informada pelo Vite. O proxy encaminha `/api` para `http://localhost:8080`.
 
-## React Compiler
+## Comandos
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `npm run dev`: inicia o servidor de desenvolvimento.
+- `npm run build`: gera os arquivos estáticos em `dist/`.
+- `npm run preview`: serve o build localmente.
+- `npm run lint`: verifica o código com ESLint.
+- `npm run format`: formata os arquivos do frontend com Prettier.
 
-## Expanding the ESLint configuration
+A API usa o caminho relativo `/api/v1`; não configure uma URL absoluta nem coloque segredos em variáveis `VITE_*`.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Requisito implementado
+
+- [RF-FE-001 — Fluxo de login do usuário](../docs/requisitos-fe.md#rf-fe-001--fluxo-de-login-do-usuário): login, restauração e renovação da sessão, rotas protegidas e logout.
