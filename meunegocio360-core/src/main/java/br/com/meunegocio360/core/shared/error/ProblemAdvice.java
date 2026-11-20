@@ -13,10 +13,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class ProblemAdvice {
@@ -56,6 +58,25 @@ public class ProblemAdvice {
         HttpStatus.valueOf(erro.getStatus()));
   }
 
+  @ExceptionHandler(ErroDeNegocio.class)
+  public ResponseEntity<ProblemResponse> tratarRegraDeNegocio(
+      ErroDeNegocio erro, HttpServletRequest request) {
+    return resposta(
+        request, erro.getStatus(), erro.getCode(), erro.getTitle(), erro.getMessage(), List.of());
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<ProblemResponse> tratarAcessoNegado(
+      AccessDeniedException erro, HttpServletRequest request) {
+    return resposta(
+        request,
+        403,
+        "ACCESS_DENIED",
+        "Acesso negado",
+        "Você não tem permissão para executar esta operação.",
+        List.of());
+  }
+
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ProblemResponse> tratarValidacao(
       MethodArgumentNotValidException erro, HttpServletRequest request) {
@@ -80,6 +101,20 @@ public class ProblemAdvice {
         "Dados inválidos",
         "Um ou mais campos são inválidos.",
         List.of(new ProblemResponse.FieldValidationError("body", "deve conter um JSON válido")));
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<ProblemResponse> tratarTipoInvalido(
+      MethodArgumentTypeMismatchException erro, HttpServletRequest request) {
+    return resposta(
+        request,
+        400,
+        "VALIDATION_ERROR",
+        "Dados inválidos",
+        "Um ou mais campos são inválidos.",
+        List.of(
+            new ProblemResponse.FieldValidationError(
+                erro.getName(), "está em um formato inválido")));
   }
 
   @ExceptionHandler(Exception.class)

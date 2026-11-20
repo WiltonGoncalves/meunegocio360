@@ -96,7 +96,7 @@ public class AuthService {
 
     usuario.registrarLoginBemSucedido(agora);
     usuarioRepositorio.salvar(usuario);
-    LOGGER.info("event=auth.login outcome=success perfil={}", usuario.getPerfil());
+    LOGGER.info("event=auth.login outcome=success perfil={}", usuario.getPerfil().name());
     return criarSessao(usuario, UUID.randomUUID(), agora);
   }
 
@@ -155,7 +155,7 @@ public class AuthService {
     Usuario usuario =
         usuarioRepositorio.buscarPorId(id).orElseThrow(ErroAutenticacao::naoAutorizado);
     return new UsuarioResumo(
-        usuario.getId(), usuario.getNome(), usuario.getEmail(), usuario.getPerfil());
+        usuario.getId(), usuario.getNome(), usuario.getEmail(), usuario.getPerfil().name());
   }
 
   private Sessao criarSessao(Usuario usuario, UUID familiaId, Instant agora) {
@@ -172,7 +172,7 @@ public class AuthService {
         tokenService.emitirAcesso(usuario, agora),
         accessTokenMinutes * 60,
         new UsuarioResumo(
-            usuario.getId(), usuario.getNome(), usuario.getEmail(), usuario.getPerfil()),
+            usuario.getId(), usuario.getNome(), usuario.getEmail(), usuario.getPerfil().name()),
         refreshEmClaro,
         refreshTokenDays * 86400L);
   }

@@ -18,7 +18,7 @@ public class ProblemAccessDeniedHandler implements AccessDeniedHandler {
             request,
             response,
             403,
-            "FORBIDDEN",
+            "ACCESS_DENIED",
             "Acesso negado",
             "Você não tem permissão para acessar este recurso.",
             null,

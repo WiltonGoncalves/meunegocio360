@@ -2,6 +2,8 @@ package br.com.meunegocio360.core.auth.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -28,8 +30,9 @@ public class Usuario {
   @Column(name = "senha_hash", nullable = false, length = 100)
   private String senhaHash;
 
+  @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
-  private String perfil;
+  private Perfil perfil;
 
   @Column(nullable = false)
   private boolean ativo = true;
@@ -55,7 +58,7 @@ public class Usuario {
 
   protected Usuario() {}
 
-  public Usuario(String nome, String email, String senhaHash, String perfil, Instant agora) {
+  public Usuario(String nome, String email, String senhaHash, Perfil perfil, Instant agora) {
     this.nome = nome;
     this.email = email.trim().toLowerCase(Locale.ROOT);
     this.senhaHash = senhaHash;
@@ -111,7 +114,7 @@ public class Usuario {
     return senhaHash;
   }
 
-  public String getPerfil() {
+  public Perfil getPerfil() {
     return perfil;
   }
 
