@@ -1,0 +1,3 @@
+UPDATE usuario
+SET perfil = 'OPERADOR_COMERCIAL'
+WHERE perfil = 'USUARIO';

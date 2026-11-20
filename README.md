@@ -189,6 +189,25 @@ if (pm.response.code === 200) {
 }
 ```
 
+### Cadastro de empresa no Postman (RF-BE-002)
+
+Use um banco de desenvolvimento com as migrations V1–V4 aplicadas e sem empresa ativa. O seed `dev` disponibiliza as contas `admin@meunegocio360.com.br`, `usuario@meunegocio360.com.br` (`OPERADOR_COMERCIAL`) e `financeiro@meunegocio360.com.br` (`OPERADOR_FINANCEIRO`); senhas são as variáveis secretas `SEED_ADMIN_SENHA`, `SEED_USUARIO_SENHA` e `SEED_FINANCEIRO_SENHA` do `.env`. Não inclua senhas em exemplos ou coleções compartilhadas.
+
+Configure no ambiente Postman `baseUrl=http://localhost:8080`. Para cada fluxo, obtenha um token usando `POST {{baseUrl}}/api/v1/auth/login` com o e-mail e a senha daquele perfil; nas chamadas seguintes, envie a variável `{{accessToken}}` no cabeçalho de autorização como token JWT. As requisições de escrita usam este corpo válido:
+
+```json
+{
+  "razaoSocial": "Comércio Exemplo Ltda",
+  "cnpj": "11222333000181"
+}
+```
+
+1. **ADMIN — cadastro e ciclo de vida:** `GET /api/v1/empresa` deve iniciar com `404 COMPANY_NOT_REGISTERED`. Antes do cadastro válido, envie o corpo com CNPJ `11222333000180`; espere `400 VALIDATION_ERROR`, com erro no campo `cnpj`. Envie `POST /api/v1/empresa` com o corpo acima e espere `201`, `Location`, `ativa: true`, `fusoHorario: "America/Sao_Paulo"` e `moeda: "BRL"`. Salve o `id` e `versao` da resposta. Enquanto a primeira empresa estiver ativa, tente cadastrar outra com CNPJ válido `11444777000161`; espere `409 COMPANY_ALREADY_ACTIVE`. `GET` deve retornar `200`. Envie `PUT /api/v1/empresa/{{empresaId}}` com os campos do cadastro, `nomeFantasia` atualizado e a versão atual; espere `200` e incremento de `versao`. Repita com a versão antiga para confirmar `409 VERSION_CONFLICT`. Envie `PATCH /api/v1/empresa/{{empresaId}}/situacao` com `{"ativa":false,"versao":<versao-atual>}`; espere `200` e depois `GET` com `404 COMPANY_NOT_REGISTERED`. Tente cadastrar outra vez com o CNPJ da empresa inativa e espere `409 COMPANY_CNPJ_DUPLICATE`. Cadastre então a segunda empresa com CNPJ `11444777000161`; espere `201`. Tente reativar a primeira enquanto a segunda está ativa e espere `409 COMPANY_ALREADY_ACTIVE`. Por fim, inative a segunda e reative a primeira usando as versões retornadas; confirme `200` e deixe a primeira ativa para os testes seguintes.
+2. **OPERADOR_COMERCIAL — consulta sem escrita:** faça login como `usuario@meunegocio360.com.br`; `GET /api/v1/empresa` deve retornar `200`. Envie um `POST /api/v1/empresa` com o corpo válido acima; espere `403 ACCESS_DENIED`.
+3. **OPERADOR_FINANCEIRO — consulta sem escrita:** faça login como `financeiro@meunegocio360.com.br`; `GET /api/v1/empresa` deve retornar `200`. Envie `PATCH /api/v1/empresa/{{empresaId}}/situacao` com `{"ativa":false,"versao":0}`; espere `403 ACCESS_DENIED`.
+
+Os erros usam `application/problem+json`. Não limpe volumes de banco com dados que precisem ser preservados; prepare um banco de desenvolvimento sem empresa ativa para o primeiro fluxo.
+
 ### Conceitos de DevOps (introdutórios)
 
 O foco do projeto é o desenvolvimento de software. Os conceitos de DevOps usados aqui são apenas introdutórios e já vêm prontos:

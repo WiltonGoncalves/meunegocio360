@@ -25,6 +25,10 @@ public class OpenApiConfiguration {
             new Info()
                 .title("MeuNegocio360 - Núcleo")
                 .version("v1")
-                .description("API de identidade e autenticação do Núcleo."));
+                .description(
+                    "API de identidade, autenticação e cadastro da empresa do Núcleo. "
+                        + "O componente EmpresaAtiva disponibiliza o contexto da empresa "
+                        + "no servidor; operações de negócio exigem empresa ativa "
+                        + "(COMPANY_NOT_ACTIVE, HTTP 422)."));
   }
 }

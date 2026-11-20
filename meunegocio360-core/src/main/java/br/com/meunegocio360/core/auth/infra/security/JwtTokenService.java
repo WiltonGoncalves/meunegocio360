@@ -47,7 +47,7 @@ public class JwtTokenService implements TokenService {
             .issuedAt(agora)
             .expiresAt(agora.plus(accessTokenDuration))
             .id(UUID.randomUUID().toString())
-            .claim("perfil", usuario.getPerfil())
+            .claim("perfil", usuario.getPerfil().name())
             .build();
     JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
     return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
