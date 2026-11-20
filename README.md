@@ -208,6 +208,28 @@ Configure no ambiente Postman `baseUrl=http://localhost:8080`. Para cada fluxo, 
 
 Os erros usam `application/problem+json`. Não limpe volumes de banco com dados que precisem ser preservados; prepare um banco de desenvolvimento sem empresa ativa para o primeiro fluxo.
 
+### Cadastro de clientes no Postman (RF-BE-003)
+
+Pré-requisitos: migrations V1–V5 aplicadas, empresa ativa cadastrada, aplicação em `dev` e Postman com `baseUrl=http://localhost:8080`. Para cada fluxo, autentique-se por `POST {{baseUrl}}/api/v1/auth/login` com a conta daquele perfil e envie o `accessToken` no cabeçalho Bearer. Use as senhas configuradas nas variáveis locais de ambiente; não as salve em coleções compartilhadas. A empresa nunca é informada no corpo: a API sempre usa a empresa ativa.
+
+Corpo de exemplo para cadastro:
+
+```json
+{
+  "tipoPessoa": "FISICA",
+  "nome": "Maria da Silva",
+  "documento": "529.982.247-25",
+  "email": "maria@exemplo.com.br",
+  "telefone": "11987654321"
+}
+```
+
+1. **ADMIN — cadastro, edição e unicidade:** envie `POST {{baseUrl}}/api/v1/clientes` com o corpo acima. Espere `201`, `Location`, `documento: "52998224725"`, `ativo: true` e guarde `id`/`versao`. Consulte `GET /api/v1/clientes/{{clienteId}}` e confirme `200`. Tente cadastrar o mesmo documento novamente, inclusive sem máscara; espere `409 CUSTOMER_DOCUMENT_DUPLICATE`. Envie `PUT /api/v1/clientes/{{clienteId}}` com todos os campos, novo telefone e a versão atual; espere `200` e `versao` incrementada. Repita usando a versão anterior para obter `409 VERSION_CONFLICT`. Exclua com `DELETE /api/v1/clientes/{{clienteId}}`; como não há vínculo de venda/OS nesta fase, espere `204`, seguido de `404 CUSTOMER_NOT_FOUND` na consulta.
+2. **OPERADOR_COMERCIAL — busca e situação:** autentique-se como `usuario@meunegocio360.com.br` e cadastre outro cliente com `POST /api/v1/clientes` usando CPF válido `111.444.777-35` (pode enviar `11144477735`, com ou sem máscara). Confirme `201`. Liste `GET /api/v1/clientes?q=111.444&situacao=ATIVO&page=0&size=20&sort=nome`; espere a página padrão (`content`, `page`, `size`, `totalElements`, `totalPages`) e o cliente. Envie `PATCH /api/v1/clientes/{{clienteId}}/situacao` com `{"ativo":false,"versao":0}`; espere `200` e confirme que ele não aparece na listagem padrão, mas aparece em `GET /api/v1/clientes?situacao=TODOS`. Reative com `{"ativo":true,"versao":<versao-atual>}` e confirme `200`.
+3. **OPERADOR_FINANCEIRO — acesso negado:** autentique-se como `financeiro@meunegocio360.com.br` e envie `GET {{baseUrl}}/api/v1/clientes`; espere `403`, `code: "ACCESS_DENIED"` e `Content-Type: application/problem+json`.
+
+Para validar a exigência de empresa ativa em ambiente de desenvolvimento, inative temporariamente a empresa pelo endpoint de RF-BE-002 e tente cadastrar cliente: a resposta esperada é `422 COMPANY_NOT_ACTIVE`. Reative a empresa antes de continuar os fluxos acima. A exclusão com histórico será exercitada quando existirem vínculos de vendas ou OS; até lá, a interface de verificação de vínculos permite integração sem acoplar features.
+
 ### Conceitos de DevOps (introdutórios)
 
 O foco do projeto é o desenvolvimento de software. Os conceitos de DevOps usados aqui são apenas introdutórios e já vêm prontos:
